@@ -1,17 +1,40 @@
 #!/bin/sh
 # works on any init system
 # requirements: dmenu, xorg-setxkbmap
+# modified from Luke's one to select Bangla probhat keyboard 
+
 kb="$(setxkbmap -query | grep -oP 'layout:\s*\K\w+')" || exit 1
+variant="$(setxkbmap -query | grep -oP 'variant:\s*\K\w+')" || variant=""
 
 case $BLOCK_BUTTON in
 	1) kb_choice="$(awk '/! layout/{flag=1; next} /! variant/{flag=0} flag {print $2, "- " $1}' /usr/share/X11/xkb/rules/base.lst | dmenu -l 15)"
 	[ -z "$kb_choice" ] && exit 0
 	kb="$(echo "$kb_choice" | awk '{print $3}')"
-	setxkbmap "$kb"
+
+	# If bd is selected, then ask for variant
+	if [ "$kb" = "bd" ]; then
+		variant_choice=$(echo -e "bd (Default)\nprobhat" | dmenu -l 2)  # Include "bd (Default)" along with variants
+		[ -z "$variant_choice" ] && exit 0
+		variant="$(echo "$variant_choice" | awk '{print $1}')"
+		[ "$variant" = "bd" ] && variant=""  # If default is selected, set variant to empty
+		setxkbmap -layout bd -variant "$variant"
+	else
+		setxkbmap -layout "$kb"
+	fi
+
 	pkill -RTMIN+30 "${STATUSBAR:-dwmblocks}";;
-	3) notify-send "⌨  Keyboard/language module" "$(printf "%s" "\- Current layout: $(setxkbmap -query | grep -oP 'layout:\s*\K\w+')")
+	3) notify-send "⌨  Keyboard/language module" "$(printf "%s" "\- Current layout: $kb (Variant: $variant)")
 - Left click to change keyboard.";;
 	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-echo "$kb"
+# Update the layout and variant after potential change
+kb="$(setxkbmap -query | grep -oP 'layout:\s*\K\w+')" || exit 1
+variant="$(setxkbmap -query | grep -oP 'variant:\s*\K\w+')" || variant=""
+
+# Only display variant if it's not empty
+if [ -z "$variant" ]; then
+	echo "$kb"
+else
+	echo "$kb ($variant)"
+fi
