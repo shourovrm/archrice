@@ -1,1 +1,10 @@
+#!/bin/sh
+
+case $BLOCK_BUTTON in
+    1) setsid zoom & ;;
+    3) notify-send "Zoom module" "\- Left click to open Zoom." ;;
+    6) "$TERMINAL" -e "$EDITOR" "$0" ;;
+esac
+
+printf "📹"
 
